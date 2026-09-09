@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendário Comunidade de Vida</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.ico" />
+
+  <!-- Umami Analytics -->
+  <script defer src="https://analytics.eucaristos.com.br/script.js" data-website-id="aa444510-5d2a-4827-bbf5-2919d564df55"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lora:ital,wght@0,400;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=info" />
+  <!-- FullCalendar -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.20/locales/pt-br.global.min.js"></script>
+
+  <style>
+    /* ─────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────── */
+    :root {
+      --color-accent:     #6366f1;
+      --color-comum:      #0891b2;
+      --color-formativo:  #16a34a;
+      --bg-base:          #1a2332;
+      --bg-surface:       #111827;
+      --bg-card:          #1e2a3a;
+      --bg-hover:         #2d3748;
+      --today-bg:         rgba(45, 55, 72, 0.6);
+      --border-color:     #2d3748;
+      --border-subtle:    #374151;
+      --text-primary:     #f1f5f9;
+      --text-secondary:   #e2e8f0;
+      --text-muted:       #94a3b8;
+      --text-faint:       #64748b;
+      --font-main:        'Inter', 'Segoe UI', sans-serif;
+      --font-heading:     'Cinzel', serif;
+      --font-sub:         'Lora', serif;
+      --radius-sm:        6px;
+      --radius-md:        8px;
+      --radius-lg:        14px;
+      --radius-pill:      20px;
+      --radius-circle:    50%;
+    }
+
+    body.light {
+      --color-accent:     #4f46e5;
+      --bg-base:          #f1f5f9;
+      --bg-surface:       #ffffff;
+      --bg-card:          #f8fafc;
+      --bg-hover:         #e2e8f0;
+      --border-color:     #e2e8f0;
+      --border-subtle:    #cbd5e1;
+      --text-primary:     #0f172a;
+      --text-secondary:   #1e293b;
+      --text-muted:       #475569;
+      --text-faint:       #94a3b8;
+      --today-bg:         rgba(0, 0, 0, 0.08);
+    }
+
+    /* ─────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background:  var(--bg-base);
+      color:       var(--text-secondary);
+      font-family: var(--font-main);
+      min-height:  100vh;
+      display:     flex;
+      flex-direction: column;
+    }
+
+    /* ─────────────────────────────────────────
+       LOADING SCREEN
+    ───────────────────────────────────────── */
+    #loading {
+      position:        fixed;
+      inset:           0;
+      background:      var(--bg-base);
+      z-index:         99999;
+      display:         flex;
+      flex-direction:  column;
+      align-items:     center;
+      justify-content: center;
+      gap:             1.5rem;
+      transition:      opacity 0.5s ease;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width:        48px;
+      height:       48px;
+      border:       4px solid var(--bg-hover);
+      border-top-color: var(--color-accent);
+      border-radius: var(--radius-circle);
+      animation:    spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading p {
+      color:          var(--text-muted);
+      font-size:      0.9rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ─────────────────────────────────────────
+       HEADER
+    ───────────────────────────────────────── */
+    #site-header {
+      display:     grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding:     1.5rem 2rem;
+      background:  var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      gap:         1rem;
+    }
+
+    #header-left {
+      display:     flex;
+      align-items: center;
+    }
+
+    #logo {
+      height:      72px;
+      width:       auto;
+      object-fit:  contain;
+    }
+
+    #header-center { text-align: center; }
+
+    #header-center h1 {
+      font-family:     var(--font-heading);
+      font-size:       1.9rem;
+      font-weight:     700;
+      color:           var(--text-primary);
+      letter-spacing:  0.03em;
+      white-space:     nowrap;
+    }
+
+    #sub-header {
+      font-family: var(--font-sub);
+      font-size:   0.95rem;
+      color:       var(--text-muted);
+      margin-top:  0.35rem;
+    }
+    #sub-header em {
+      font-style: italic;
+      color:      var(--color-accent);
+    }
+
+    #header-right {
+      display:         flex;
+      justify-content: flex-end;
+      align-items:     center;
+    }
+
+    #theme-toggle-mobile { display: none; }
+
+    #theme-toggle {
+      display:      flex;
+      align-items:  center;
+      gap:          0.5rem;
+      padding:      0.4rem 1rem;
+      background:   var(--bg-hover);
+      border:       1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      color:        var(--text-muted);
+      font-family:  var(--font-main);
+      font-size:    0.82rem;
+      font-weight:  500;
+      cursor:       pointer;
+      transition:   background 0.2s, color 0.2s, border-color 0.2s;
+      white-space:  nowrap;
+    }
+    #theme-toggle:hover {
+      background:   var(--bg-card);
+      color:        var(--text-primary);
+      border-color: var(--color-accent);
+    }
+    #theme-toggle .toggle-icon { font-size: 1rem; }
+
+    /* ─────────────────────────────────────────
+       FILTER TOOLBAR
+    ───────────────────────────────────────── */
+    #toolbar {
+      display:      flex;
+      flex-wrap:    wrap;
+      align-items:  center;
+      gap:          0.5rem;
+      padding:      1rem 1.5rem;
+      background:   var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .legend {
+      display:     flex;
+      gap:         1.2rem;
+      align-items: center;
+      font-size:   0.85rem;
+      color:       var(--text-muted);
+      margin-right: auto;
+    }
+    .legend-dot {
+      width:         11px;
+      height:        11px;
+      border-radius: var(--radius-circle);
+      display:       inline-block;
+      margin-right:  5px;
+    }
+
+    .filter-btn {
+      padding:       0.45rem 1.2rem;
+      border:        1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      background:    transparent;
+      color:         var(--text-muted);
+      cursor:        pointer;
+      font-family:   var(--font-main);
+      font-size:     0.85rem;
+      font-weight:   500;
+      transition:    all 0.2s;
+    }
+    .filter-btn:hover  { border-color: var(--color-accent); color: var(--color-accent); }
+    .filter-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: #ffffff !important; }
+
+    .fc .fc-button:not(:disabled):active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+      color: #ffffff !important;
+    }
+
+    /* ─────────────────────────────────────────
+       CALENDAR WRAPPER
+    ───────────────────────────────────────── */
+    #calendar-wrapper { padding: 1.5rem; flex: 1; }
+
+    /* ─────────────────────────────────────────
+       FULLCALENDAR OVERRIDES
+    ───────────────────────────────────────── */
+    .fc {
+      --fc-border-color:               var(--border-color);
+      --fc-button-bg-color:            var(--bg-hover);
+      --fc-button-border-color:        var(--border-subtle);
+      --fc-button-text-color:          var(--text-secondary);
+      --fc-button-hover-bg-color:      var(--color-accent);
+      --fc-button-hover-border-color:  var(--color-accent);
+      --fc-button-active-bg-color:     var(--color-accent);
+      --fc-button-active-border-color: var(--color-accent);
+      --fc-today-bg-color:             var(--today-bg);
+      --fc-page-bg-color:              var(--bg-base);
+      --fc-neutral-bg-color:           var(--bg-card);
+      --fc-list-event-hover-bg-color:  var(--bg-hover);
+      font-family: var(--font-main);
+    }
+
+    .fc .fc-toolbar-title {
+      color:           var(--text-primary);
+      font-size:       1.5rem;
+      font-weight:     700;
+      letter-spacing:  0.02em;
+      text-transform:  capitalize;
+    }
+
+    .fc .fc-col-header-cell { background: var(--bg-surface); padding: 0.6rem 0; }
+    .fc .fc-col-header-cell-cushion {
+      color:           var(--text-faint);
+      font-size:       0.9rem;
+      font-weight:     600;
+      letter-spacing:  0.08em;
+      text-transform:  uppercase;
+      text-decoration: none;
+    }
+
+    .fc .fc-daygrid-day-number {
+      color:           var(--text-muted);
+      font-size:       1.1rem;
+      font-weight:     600;
+      padding:         0.6rem 0.75rem;
+      text-decoration: none;
+    }
+    .fc .fc-daygrid-day-number:hover          { color: var(--color-accent); }
+    .fc .fc-day-today .fc-daygrid-day-number  { color: var(--color-accent); font-weight: 700; }
+    .fc .fc-daygrid-day                       { min-height: 120px; }
+
+    .fc-event {
+      border:        none !important;
+      border-radius: var(--radius-sm) !important;
+      font-size:     0.92rem !important;
+      font-weight:   600 !important;
+      padding:       5px 8px !important;
+      cursor:        pointer;
+      opacity:       0.92;
+      transition:    opacity 0.15s, transform 0.15s;
+    }
+    .fc-event:hover { opacity: 1; transform: translateY(-1px); }
+
+    .fc .fc-list-event-time                    { display: none; }
+    .fc .fc-list-event-dot                     { display: none; }
+    .fc .fc-list-day-cushion                   { background: var(--bg-surface); }
+    .fc .fc-list-day-text,
+    .fc .fc-list-day-side-text                 { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+    .fc .fc-list-event-title a                 { color: var(--text-secondary); text-decoration: none; font-size: 1rem; }
+    .fc .fc-list-event:hover td                { background: var(--bg-hover); }
+
+    .fc .fc-button {
+      text-transform: capitalize;
+      font-family:    var(--font-main);
+      font-size:      0.85rem;
+      font-weight:    500;
+      border-radius:  var(--radius-md) !important;
+      padding:        0.4rem 0.9rem;
+    }
+
+    /* ─────────────────────────────────────────
+       ERROR SCREEN
+    ───────────────────────────────────────── */
+    #error-screen {
+      position:        fixed;
+      inset:           0;
+      background:      var(--bg-base);
+      z-index:         99998;
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+    }
+    #error-screen.hidden { display: none; }
+
+    .error-box {
+      background:     var(--bg-card);
+      border:         1px solid var(--border-subtle);
+      border-radius:  var(--radius-lg);
+      padding:        2.5rem 3rem;
+      text-align:     center;
+      max-width:      420px;
+      display:        flex;
+      flex-direction: column;
+      align-items:    center;
+      gap:            1rem;
+      box-shadow:     0 8px 40px rgba(0,0,0,0.4);
+    }
+    .error-icon          { font-size: 2.5rem; }
+    .error-box h2        { color: var(--text-primary); font-size: 1.2rem; font-weight: 700; }
+    .error-box p         { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; }
+    .error-box button {
+      margin-top:    0.5rem;
+      padding:       0.5rem 1.5rem;
+      background:    var(--color-accent);
+      color:         #fff;
+      border:        none;
+      border-radius: var(--radius-md);
+      font-family:   var(--font-main);
+      font-size:     0.88rem;
+      font-weight:   600;
+      cursor:        pointer;
+      transition:    opacity 0.2s;
+    }
+    .error-box button:hover { opacity: 0.85; }
+
+    /* ─────────────────────────────────────────
+       MODAL
+    ───────────────────────────────────────── */
+    #modal-overlay {
+      position:        fixed;
+      inset:           0;
+      background:      rgba(0,0,0,0.6);
+      z-index:         99997;
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      animation:       fadeIn 0.2s ease;
+    }
+    #modal-overlay.hidden { display: none; }
+
+    @keyframes fadeIn  { from { opacity: 0; }              to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    #modal {
+      background:    var(--bg-card);
+      border:        1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding:       2rem 2.5rem;
+      min-width:     320px;
+      max-width:     480px;
+      width:         90%;
+      max-height:    80vh;
+      overflow-y:    auto;
+      position:      relative;
+      box-shadow:    0 12px 50px rgba(0,0,0,0.5);
+      animation:     slideUp 0.25s ease;
+    }
+
+    #modal-close {
+      position:   absolute;
+      top:        1rem;
+      right:      1.2rem;
+      background: none;
+      border:     none;
+      color:      var(--text-muted);
+      font-size:  1.5rem;
+      cursor:     pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    #modal-close:hover { color: var(--text-primary); }
+
+    #modal-content h2 {
+      color:         var(--text-primary);
+      font-size:     1.1rem;
+      font-weight:   700;
+      margin-bottom: 1rem;
+      padding-right: 1.5rem;
+    }
+    #modal-content .modal-event-name {
+      color:         var(--text-primary);
+      font-size:     1.2rem;
+      font-weight:   700;
+      margin-bottom: 0.5rem;
+    }
+    #modal-content .modal-badge {
+      display:       inline-block;
+      padding:       0.2rem 0.75rem;
+      border-radius: var(--radius-pill);
+      font-size:     0.78rem;
+      font-weight:   600;
+      color:         #fff;
+      margin-bottom: 0.75rem;
+    }
+    #modal-content .modal-event-list {
+      list-style:     none;
+      display:        flex;
+      flex-direction: column;
+      gap:            0.5rem;
+    }
+    #modal-content .modal-event-list li {
+      display:       flex;
+      align-items:   center;
+      gap:           0.75rem;
+      padding:       0.6rem 0.75rem;
+      background:    var(--bg-hover);
+      border-radius: var(--radius-md);
+      color:         var(--text-secondary);
+      font-size:     0.9rem;
+      font-weight:   500;
+    }
+    #modal-content .modal-event-list .dot {
+      width:         10px;
+      height:        10px;
+      border-radius: var(--radius-circle);
+      flex-shrink:   0;
+    }
+    #modal-content .no-events {
+      color:      var(--text-muted);
+      font-size:  0.9rem;
+      text-align: center;
+      padding:    1rem 0;
+    }
+    .modal-obs {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        border-left: 6px solid var(--text-faint);
+        padding: 4px;
+    }
+
+    /* ─────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────── */
+    #site-footer {
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      position:        relative;
+      padding:         1.25rem;
+      background:      var(--bg-surface);
+      border-top:      1px solid var(--border-color);
+      color:           var(--text-faint);
+      font-size:       0.82rem;
+      letter-spacing:  0.02em;
+      margin-top:      1rem;
+    }
+
+    #app-version {
+      position:  absolute;
+      right:     1.25rem;
+      color:     var(--text-faint);
+      font-size: 0.78rem;
+      opacity:   0.6;
+    }
+
+    /* ─────────────────────────────────────────
+       RESPONSIVE — MOBILE
+    ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      #site-header {
+        grid-template-columns: auto 1fr;
+        padding: 1rem;
+      }
+      #header-right { display: none; }
+      #logo         { height: 52px; }
+      #header-center { text-align: left; }
+      #header-center h1 { font-size: 1.2rem; white-space: normal; }
+      #sub-header       { font-size: 0.78rem; }
+
+      #toolbar  { justify-content: center; }
+      .legend   { display: none; }
+
+      #calendar-wrapper { padding: 0.75rem; }
+      .fc .fc-daygrid-day { min-height: 80px; }
+      .fc .fc-toolbar-title { font-size: 1.3rem; }
+      .fc .fc-button { padding: 0.5rem 1.1rem; font-size: 0.9rem; }
+
+      .fc .fc-header-toolbar {
+        display:         flex;
+        flex-direction:  column;
+        align-items:     center;
+        gap:             0.75rem;
+      }
+      .fc .fc-toolbar-chunk {
+        display:         flex;
+        justify-content: center;
+        width:           100%;
+      }
+      .fc .fc-daygrid-event-harness { margin-bottom: 3px !important; }
+      .fc-event { padding: 5px 8px !important; }
+
+      #theme-toggle-mobile {
+        display:         flex;
+        align-items:     center;
+        justify-content: center;
+        position:        fixed;
+        bottom:          1.5rem;
+        right:           1.5rem;
+        z-index:         9000;
+        width:           52px;
+        height:          52px;
+        border-radius:   var(--radius-circle);
+        background:      var(--color-accent);
+        border:          none;
+        font-size:       1.4rem;
+        cursor:          pointer;
+        box-shadow:      0 4px 20px rgba(0,0,0,0.35);
+        transition:      background 0.2s, transform 0.2s;
+      }
+      #theme-toggle-mobile:hover  { transform: scale(1.1); }
+      #theme-toggle-mobile:active { transform: scale(0.95); }
+
+      #site-footer {
+        padding-bottom: 5rem;
+        flex-direction: column;
+        gap:            0.25rem;
+        text-align:     center;
+      }
+      #app-version {
+        position:  static;
+        font-size: 0.72rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Loading Screen ───────────────────── -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Carregando calendário...</p>
+</div>
+
+<!-- ── Header ───────────────────────────── -->
+<header id="site-header">
+  <div id="header-left">
+    <img id="logo" src="logo-header.webp" alt="Logo Eucaristós" />
+  </div>
+  <div id="header-center">
+    <h1>Calendário Comunidade de Vida</h1>
+    <p id="sub-header">Ano: <em>Edificados na Promessa</em></p>
+  </div>
+  <div id="header-right">
+    <button id="theme-toggle">
+      <span class="toggle-icon">🌙</span>
+      <span class="toggle-label">Modo Escuro</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── Filter Toolbar ───────────────────── -->
+<div id="toolbar">
+  <div class="legend">
+    <span><span class="legend-dot" style="background:var(--color-comum)"></span>Calendário Geral</span>
+    <span><span class="legend-dot" style="background:var(--color-formativo)"></span>Calendário Formativo</span>
+  </div>
+  <button class="filter-btn active" data-filter="todos">Todos</button>
+  <button class="filter-btn" data-filter="Calendário Geral">Geral</button>
+  <button class="filter-btn" data-filter="Calendário Formativo">Formativo</button>
+</div>
+
+<!-- ── Calendar ─────────────────────────── -->
+<div id="calendar-wrapper">
+  <div id="calendar"></div>
+</div>
+
+<!-- ── Error Screen ─────────────────────── -->
+<div id="error-screen" class="hidden">
+  <div class="error-box">
+    <span class="error-icon">⚠️</span>
+    <h2>Algo deu errado</h2>
+    <p id="error-message"></p>
+    <button onclick="location.reload()">Tentar novamente</button>
+  </div>
+</div>
+
+<!-- ── Modal ────────────────────────────── -->
+<div id="modal-overlay" class="hidden">
+  <div id="modal">
+    <button id="modal-close">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ── Footer ───────────────────────────── -->
+<footer id="site-footer">
+  <p>&copy; <span id="footer-year"></span> Comunidade Católica Eucaristós. Todos os direitos reservados.</p>
+  <span id="app-version">v1.0.3</span>
+</footer>
+
+<!-- ── Mobile Theme FAB ─────────────────── -->
+<button id="theme-toggle-mobile" aria-label="Alternar tema">
+  <span class="toggle-icon">🌙</span>
+</button>
+
+<script>
+  /* ─────────────────────────────────────────
+     CONFIG
+  ───────────────────────────────────────── */
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTNBFOgSbFs0WCbcblBD2V6Ph6EbnBzGYqcjeoGovxfkknPPvpuCX_qK50lcBl_1vzFxcRj0625qx0/pub?gid=2043344562&single=true&output=csv';
+
+  const COLORS = {
+    'Calendário Geral':     '#0891b2',
+    'Calendário Formativo': '#16a34a'
+  };
+
+  /* ─────────────────────────────────────────
+     ANALYTICS HELPER
+  ───────────────────────────────────────── */
+  function track(event, props = {}) {
+    if (typeof umami === 'undefined' || typeof umami.track !== 'function') return;
+    umami.track(event, props);
+  }
+
+  /* ─────────────────────────────────────────
+     STATE
+  ───────────────────────────────────────── */
+  let allEvents    = [];
+  let activeFilter = 'todos';
+  let calendar;
+
+  /* ─────────────────────────────────────────
+     FOOTER YEAR
+  ───────────────────────────────────────── */
+  document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+  /* ─────────────────────────────────────────
+     ERROR HANDLING
+  ───────────────────────────────────────── */
+  function showError(message) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-screen').classList.remove('hidden');
+  }
+
+  window.addEventListener('error', (e) => {
+    showError('Ocorreu um erro inesperado: ' + e.message);
+  });
+
+  /* ─────────────────────────────────────────
+     THEME TOGGLE
+  ───────────────────────────────────────── */
+  const themeToggle       = document.getElementById('theme-toggle');
+  const toggleIcon        = themeToggle.querySelector('.toggle-icon');
+  const toggleLabel       = themeToggle.querySelector('.toggle-label');
+  const themeToggleMobile = document.getElementById('theme-toggle-mobile');
+  const mobileIcon        = themeToggleMobile.querySelector('.toggle-icon');
+
+  function applyTheme(theme) {
+    const isLight = theme === 'light';
+    document.body.classList.toggle('light', isLight);
+    const icon = isLight ? '☀️' : '🌙';
+    toggleIcon.textContent  = icon;
+    toggleLabel.textContent = isLight ? 'Modo Claro' : 'Modo Escuro';
+    mobileIcon.textContent  = icon;
+    localStorage.setItem('theme', theme);
+  }
+
+  applyTheme(localStorage.getItem('theme') || 'dark');
+
+  themeToggle.addEventListener('click', () => {
+    applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+    track('tema-alterado', { tema: document.body.classList.contains('light') ? 'dark' : 'light' });
+  });
+
+  themeToggleMobile.addEventListener('click', () => {
+    applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+  });
+
+  /* ─────────────────────────────────────────
+     MODAL
+  ───────────────────────────────────────── */
+  const modalOverlay = document.getElementById('modal-overlay');
+  const modalContent = document.getElementById('modal-content');
+
+  function openModal(html) {
+    modalContent.innerHTML = html;
+    modalOverlay.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    modalOverlay.classList.add('hidden');
+  }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown',   (e) => { if (e.key === 'Escape') closeModal(); });
+
+  /* ─────────────────────────────────────────
+     CSV PARSING
+  ───────────────────────────────────────── */
+  const pad = (n) => String(n).padStart(2, '0');
+
+  function parseDate(str) {
+    if (!str) return null;
+    const parts = str.split('/');
+    return parts.length === 3
+      ? `${parts[2]}-${pad(parts[1])}-${pad(parts[0])}`
+      : str;
+  }
+
+  function addDay(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
+
+  function parseCSV(text) {
+    if (!text?.trim()) {
+      showError('A planilha está vazia ou inacessível.');
+      return [];
+    }
+
+    const events = text.trim().split('\n').slice(1).reduce((acc, line) => {
+      const cols = line.split(',');
+      if (!cols[0] || !cols[1]) return acc;
+
+      const inicio = parseDate(cols[1].trim());
+      if (!inicio) return acc;
+
+      const fim     = cols[2] ? parseDate(cols[2].trim()) : null;
+      const endDate = fim ? addDay(fim) : addDay(inicio);
+
+      acc.push({
+        title:  cols[0].trim(),
+        start:  inicio,
+        end:    endDate,
+        allDay: true,
+        color:  COLORS[cols[3]?.trim()] || '#555',
+        extendedProps: {
+          categoria: cols[3]?.trim() || '',
+          setor:     cols[4]?.trim() || '',
+          obs:       cols[5]?.trim() || ''
+        }
+      });
+      return acc;
+    }, []);
+
+    if (events.length === 0) {
+      showError('Nenhum evento encontrado. Verifique o formato dos dados na planilha.');
+      return [];
+    }
+
+    return events;
+  }
+
+  /* ─────────────────────────────────────────
+     FILTER
+  ───────────────────────────────────────── */
+  function getFilteredEvents() {
+    if (activeFilter === 'todos') return allEvents;
+    return allEvents.filter(e => e.extendedProps.categoria === activeFilter);
+  }
+
+  /* ─────────────────────────────────────────
+     CALENDAR
+  ───────────────────────────────────────── */
+  function renderCalendar() {
+    const isMobile    = window.innerWidth < 768;
+    const currentView = calendar ? calendar.view.type : 'dayGridMonth';
+    const currentDate = calendar ? calendar.getDate() : new Date();
+
+    if (calendar) calendar.destroy();
+
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+      locale:      'pt-br',
+      initialView: currentView,
+      initialDate: currentDate,
+      firstDay:    0,
+      height:      'auto',
+
+      headerToolbar: isMobile ? {
+        left:   '',
+        center: 'title prev,next',
+        right:  'dayGridMonth,listMonth'
+      } : {
+        left:   'prev,next',
+        center: 'title',
+        right:  'dayGridMonth,listMonth'
+      },
+
+      footerToolbar: false,
+      buttonText: { today: 'Hoje', month: 'Mês', list: 'Lista' },
+      events: getFilteredEvents(),
+
+      // Rastreia troca de view
+      viewDidMount: ({ view }) => {
+        track('view-alterada', { view: view.type });
+      },
+
+      // Clique em evento
+      eventClick: ({ event }) => {
+        const { categoria, obs } = event.extendedProps;
+        const color = COLORS[categoria] || '#555';
+        track('evento-visualizado', { nome: event.title, categoria });
+        openModal(`
+          <div class="modal-event-name">${event.title}</div>
+          ${categoria ? `<span class="modal-badge" style="background:${color}">${categoria}</span>` : ''}
+          </br>
+          ${obs ? `<span class="modal-obs"><span class="material-symbols-outlined">
+          info
+          </span> ${obs}</span>` : ''}
+        `);
+      },
+
+      // Clique em data
+      dateClick: ({ dateStr }) => {
+        if (didScroll) return;
+
+        const dayEvents = allEvents.filter(e => {
+          return dateStr >= e.start && dateStr < (e.end || e.start);
+        }).filter(e => activeFilter === 'todos' || e.extendedProps.categoria === activeFilter);
+
+        const date  = new Date(dateStr + 'T00:00:00');
+        const label = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        const title = label.charAt(0).toUpperCase() + label.slice(1);
+
+        const body = dayEvents.length > 0
+          ? `<ul class="modal-event-list">${dayEvents.map(e => `
+              <li>
+                <span class="dot" style="background:${COLORS[e.extendedProps.categoria] || '#555'}"></span>
+                ${e.title}
+              </li>`).join('')}
+            </ul>`
+          : '<p class="no-events">Nenhum evento neste dia.</p>';
+
+        openModal(`<h2>${title}</h2>${body}`);
+      },
+    });
+
+    calendar.render();
+    document.getElementById('loading').classList.add('hidden');
+  }
+
+  /* ─────────────────────────────────────────
+     FILTER BUTTONS
+  ───────────────────────────────────────── */
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      track('filtro-aplicado', { categoria: activeFilter });
+      calendar.removeAllEvents();
+      calendar.addEventSource(getFilteredEvents());
+    });
+  });
+
+  /* ─────────────────────────────────────────
+     RESPONSIVE RESIZE
+  ───────────────────────────────────────── */
+  let resizeTimer;
+  let lastWidth = window.innerWidth;
+
+  window.addEventListener('resize', () => {
+    const newWidth = window.innerWidth;
+    if (newWidth === lastWidth) return;
+    lastWidth = newWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderCalendar, 300);
+  });
+
+  /* ─────────────────────────────────────────
+     SCROLL VS TAP DETECTION
+  ───────────────────────────────────────── */
+  let touchStartY = 0;
+  let didScroll   = false;
+
+  document.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+    didScroll   = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', () => {
+    didScroll = true;
+  }, { passive: true });
+
+  /* ─────────────────────────────────────────
+     INIT — FETCH CSV
+  ───────────────────────────────────────── */
+  fetch(CSV_URL)
+    .then(r => {
+      if (!r.ok) throw new Error(`Erro HTTP ${r.status}`);
+      return r.text();
+    })
+    .then(text => {
+      allEvents = parseCSV(text);
+      if (allEvents.length > 0) renderCalendar();
+    })
+    .catch(err => {
+      showError(`Não foi possível carregar os eventos. Verifique sua conexão ou as permissões da planilha. (${err.message})`);
+    });
+</script>
+
+</body>
+</html>
